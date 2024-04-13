@@ -6,7 +6,7 @@ use std::sync::Arc;
 
 use tokio::{
     sync::{Mutex, OnceCell},
-    task::{JoinError, JoinHandle},
+    task::JoinHandle,
 };
 use twitch::init_twitch;
 use wpm::WpmGame;
