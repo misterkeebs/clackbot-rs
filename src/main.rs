@@ -36,7 +36,7 @@ async fn init_wpm_game() {
 
 async fn init_http_server() -> JoinHandle<Result<(), anyhow::Error>> {
     tokio::spawn(async move {
-        let addr = std::env::var("HTTP_ADDR").unwrap_or_else(|_| "127.0.0.1:8080".to_string());
-        http_server::start(addr).await
+        let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
+        http_server::start(port).await
     })
 }

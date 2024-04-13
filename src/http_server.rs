@@ -2,9 +2,10 @@ use tide::prelude::*;
 
 use crate::{twitch::TWITCH, WPM_GAME};
 
-pub async fn start(address: String) -> anyhow::Result<()> {
+pub async fn start(port: String) -> anyhow::Result<()> {
     let mut app = tide::new();
     app.at("/wpm").get(register_wpm);
+    let address = format!("0.0.0.0:{port}");
     println!("Listening on: {}", address);
     app.listen(address).await?;
 
