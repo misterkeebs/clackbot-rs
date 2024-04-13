@@ -24,15 +24,22 @@ async fn register_wpm(req: tide::Request<()>) -> tide::Result {
     let mut wpm_game = wpm_game.lock().await;
     let winner = wpm_game.winner(wpm);
 
-    if let Some((winner, winner_wpm)) = winner {
-        TWITCH
-            .get()
-            .unwrap()
-            .send(format!(
-                "typing test ended with {} WPM. The the winner is {} with a WPM of {}.",
-                wpm, winner, winner_wpm
-            ))
-            .await;
+    let twitch = TWITCH.get().unwrap();
+
+    match winner {
+        Some((winner, winner_wpm)) => {
+            twitch
+                .send(format!(
+                    "typing test ended with {} WPM. The the winner is {} with a WPM of {}.",
+                    wpm, winner, winner_wpm
+                ))
+                .await;
+        }
+        None => {
+            twitch
+                .send("Forever alone: no guesses :-(".to_string())
+                .await
+        }
     }
 
     Ok(tide::Response::new(200))
