@@ -30,7 +30,7 @@ async fn register_wpm(req: tide::Request<()>) -> tide::Result {
         Some((winner, winner_wpm)) => {
             twitch
                 .send(format!(
-                    "typing test ended with {} WPM. The the winner is {} with a WPM of {}.",
+                    "typing test ended with {} WPM. The the winner is {} with a guess of {} WPM.",
                     wpm, winner, winner_wpm
                 ))
                 .await;
