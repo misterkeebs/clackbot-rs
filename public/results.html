@@ -1,0 +1,175 @@
+<html>
+  <head>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&display=swap"
+      rel="stylesheet"
+    />
+    <style>
+      body {
+        /* background: url("background.jpg"); */
+        font-family: "Inter", sans-serif;
+        font-optical-sizing: auto;
+        font-weight: <weight>;
+        font-style: normal;
+        font-variation-settings: "slnt" 0;
+      }
+
+      .container {
+        display: flex;
+        flex-direction: column;
+        margin: 20px;
+        background-color: rgba(0, 0, 0, 0.5);
+        border-radius: 10px;
+        padding: 4px 10px;
+      }
+
+      h1 {
+        font-size: 24px;
+        color: white;
+        text-align: center;
+        text-shadow: 0px 3px 4px #23430c;
+      }
+
+      #playerList {
+        list-style-type: none;
+        padding: 0;
+      }
+
+      #playerList li {
+        display: flex;
+        justify-content: space-between;
+        padding: 5px;
+        margin: 5px;
+        /* border: 1px solid #ccc; */
+        border-radius: 5px;
+        background: rgba(0, 0, 0, 0.5);
+      }
+
+      div.player {
+        color: #fff;
+        font-size: 18px;
+        color: white;
+        text-shadow: 0px 3px 4px #23430c;
+      }
+
+      div.guess {
+        color: #fff;
+        font-size: 16px;
+        /* a nice shade of yellow */
+        color: #ff0;
+        text-shadow: 0px 1px 4px #23430c;
+      }
+
+      div.guess:after {
+        content: "wpm";
+        color: #fff;
+        font-size: 12px;
+      }
+
+      div.pos {
+        color: #fff;
+        font-size: 12px;
+        color: white;
+        text-shadow: 0px 3px 4px #23430c;
+      }
+
+      div.pos:before {
+        content: "#";
+        color: #00f;
+      }
+
+      .message {
+        color: white;
+        text-align: center;
+        font-size: 18px;
+        text-shadow: 0px 3px 4px #23430c;
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <h1>Typing Test</h1>
+      <div class="message"></div>
+      <ol id="playerList"></ol>
+    </div>
+
+    <script>
+      async function renderList() {
+        const playerList = document.getElementById("playerList");
+        const container = document.querySelector(".container");
+        const message = document.querySelector(".message");
+
+        const standings = await fetch("/standings").then((res) => res.json());
+        if (!standings) {
+          container.style.display = "none";
+          return setTimeout(renderList, 1000);
+        }
+
+        container.style.display = "block";
+        playerList.innerHTML = "";
+
+        if (standings.running && standings.players.length === 0) {
+          message.textContent = "Waiting for guesses";
+          message.style.display = "block";
+          return setTimeout(renderList, 1000);
+        } else {
+          message.style.display = "none";
+          message.textContent = "";
+        }
+
+        if (!standings.running) {
+          if (standings.lastWinner) {
+            message.textContent = `Last Winner: ${standings.lastWinner}`;
+            message.style.display = "block";
+            return setTimeout(renderList, 1000);
+          }
+
+          container.style.display = "none";
+          return setTimeout(renderList, 1000);
+        }
+
+        if (standings.liveWpm) {
+          message.textContent = `Live WPM: ${standings.liveWpm}`;
+          message.style.display = "block";
+        } else {
+          message.style.display = "none";
+          message.textContent = "";
+        }
+
+        console.log("standings", standings);
+        let i = 1;
+        for (var p of standings.players) {
+          console.log("p", p);
+          const li = document.createElement("li");
+
+          // const posEl = document.createElement("div");
+          // posEl.className = "pos";
+          // posEl.textContent = `${i}.`;
+          // li.appendChild(posEl);
+
+          const playerEl = document.createElement("div");
+          playerEl.className = "player";
+          playerEl.textContent = `${i}. ${p[0]}`;
+          li.appendChild(playerEl);
+
+          const guessEl = document.createElement("div");
+          guessEl.className = "guess";
+          guessEl.textContent = p[1];
+          li.appendChild(guessEl);
+
+          playerList.appendChild(li);
+
+          i += 1;
+          if (i > 10) {
+            break;
+          }
+        }
+
+        setTimeout(renderList, 1000);
+      }
+      renderList();
+    </script>
+  </body>
+</html>

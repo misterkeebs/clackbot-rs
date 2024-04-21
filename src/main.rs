@@ -5,13 +5,13 @@ mod wpm;
 use std::sync::{atomic::AtomicU8, Arc};
 
 use tokio::{
-    sync::{Mutex, OnceCell},
+    sync::{OnceCell, RwLock},
     task::JoinHandle,
 };
 use twitch::init_twitch;
 use wpm::WpmGame;
 
-pub static WPM_GAME: OnceCell<Arc<Mutex<WpmGame>>> = OnceCell::const_new();
+pub static WPM_GAME: OnceCell<Arc<RwLock<WpmGame>>> = OnceCell::const_new();
 pub static LIVE_WPM: OnceCell<Arc<AtomicU8>> = OnceCell::const_new();
 
 #[tokio::main]
@@ -31,7 +31,7 @@ async fn main() -> anyhow::Result<()> {
 }
 
 async fn init_wpm_game() {
-    let wpm_game = Arc::new(Mutex::new(WpmGame::new()));
+    let wpm_game = Arc::new(RwLock::new(WpmGame::new()));
     WPM_GAME.set(wpm_game).unwrap();
 
     let live_wpm = Arc::new(AtomicU8::new(0));
