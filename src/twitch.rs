@@ -87,9 +87,9 @@ async fn handle_message(
     match message {
         twitch_irc::message::ServerMessage::Privmsg(msg) => {
             if msg.channel_login == channel {
-                println!("Msg: {msg:#?}");
                 let text = msg.message_text.clone();
                 let sender = msg.sender.login.clone();
+                println!("{}: {}", sender, text);
                 let badges = msg
                     .badges
                     .iter()
