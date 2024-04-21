@@ -96,7 +96,7 @@ async fn handle_message(
                     .map(|b| b.name.clone())
                     .collect::<Vec<_>>();
                 if text == "!wpm start" && badges.contains(&"broadcaster".to_string()) {
-                    WPM_GAME.get().unwrap().lock().await.start();
+                    WPM_GAME.get().unwrap().write().await.start();
                     client
                         .privmsg(channel.to_string(), "A new WPM guessing game has started. Send your guess by using !wpm <guess>.".to_string())
                         .await
@@ -109,7 +109,12 @@ async fn handle_message(
                     if let Some(caps) = re.captures(&text) {
                         if let Some(n) = caps.get(1) {
                             let num = n.as_str().parse::<usize>().unwrap();
-                            let res = WPM_GAME.get().unwrap().lock().await.add_guess(&sender, num);
+                            let res = WPM_GAME
+                                .get()
+                                .unwrap()
+                                .write()
+                                .await
+                                .add_guess(&sender, num);
 
                             let reply = match res {
                                 Ok(_) => format!("{} got your {} WPM guess", sender, num),

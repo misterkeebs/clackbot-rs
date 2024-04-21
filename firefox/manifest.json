@@ -1,12 +1,9 @@
 {
   "manifest_version": 2,
   "name": "MonkeyType WPM Monitor",
-  "version": "1.0",
+  "version": "1.0.2",
   "description": "Monitors WPM changes on monkeytype.com and logs them.",
-  "permissions": [
-    "activeTab",
-    "https://clackbot-rs-production.up.railway.app/"
-  ],
+  "permissions": ["activeTab", "<all_urls>"],
   "content_scripts": [
     {
       "matches": ["*://monkeytype.com/*"],
@@ -14,4 +11,3 @@
     }
   ]
 }
-

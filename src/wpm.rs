@@ -1,13 +1,14 @@
 #[derive(Debug)]
-struct Guess {
-    user: String,
-    wpm: usize,
+pub struct Guess {
+    pub user: String,
+    pub wpm: usize,
 }
 
 #[derive(Debug)]
 pub struct WpmGame {
     running: bool,
     guesses: Vec<Guess>,
+    last_winner: Option<String>,
 }
 
 impl WpmGame {
@@ -15,12 +16,25 @@ impl WpmGame {
         WpmGame {
             running: false,
             guesses: Vec::new(),
+            last_winner: None,
         }
     }
 
     pub fn start(&mut self) {
         self.running = true;
         self.guesses.clear();
+    }
+
+    pub fn is_running(&self) -> bool {
+        self.running
+    }
+
+    pub fn guesses(&self) -> &Vec<Guess> {
+        &self.guesses
+    }
+
+    pub fn last_winner(&self) -> Option<String> {
+        self.last_winner.clone()
     }
 
     pub fn add_guess(&mut self, user: &str, wpm: usize) -> anyhow::Result<()> {
@@ -30,17 +44,21 @@ impl WpmGame {
             ));
         }
 
-        self.guesses.push(Guess {
-            user: user.to_string(),
-            wpm,
-        });
+        // find or insert the user's guess
+        match self.guesses.iter_mut().find(|x| x.user == user) {
+            Some(g) => g.wpm = wpm,
+            None => self.guesses.push(Guess {
+                user: user.to_string(),
+                wpm,
+            }),
+        }
 
         Ok(())
     }
 
     pub fn winner(&mut self, wpm: usize) -> Option<(String, usize)> {
+        self.running = false;
         if self.guesses.len() < 1 {
-            self.running = false;
             return None;
         }
 
@@ -61,6 +79,9 @@ impl WpmGame {
             .find(|g| g.user == winner.0)
             .unwrap()
             .wpm;
+
+        self.guesses.clear();
+        self.last_winner = Some(winner.0.clone());
 
         Some((winner.0, wpm))
     }
