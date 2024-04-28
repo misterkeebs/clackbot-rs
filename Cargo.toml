@@ -8,8 +8,20 @@ edition = "2021"
 anyhow = "1.0.82"
 dotenv = "0.15.0"
 regex = "1.10.4"
+reqwest = "0.11"
 serde = { version = "1.0.198", features = ["derive"] }
 serde_json = "1.0.116"
 tide = "0.16.0"
 tokio = { version = "1.37.0", features = ["full"] }
+tokio-tungstenite = "0.21.0"
 twitch-irc = "5.0.1"
+twitch-pubsub = { git = "https://github.com/Nerixyz/twitch-pubsub-rs" }
+# twitch_api2 = { version = "0.6.1", features = ["all"] }
+# twitch_oauth2 = { version = "0.6.1", features = ["reqwest"] }
+# twitch_oauth2 = { path = "../twitch_api/twitch_oauth2" }
+# twitch_types = { path = "../twitch_api/twitch_types" }
+# twitch_api = { path = "../twitch_api", features = ["reqwest", "helix", "eventsub", "hmac"] }
+# twitch_api = { git = "https://github.com/twitch-rs/twitch_api", features = ["reqwest", "helix", "eventsub", "hmac"] }
+# twitch_api = { version = "0.7.0-rc.7", features = ["reqwest", "helix", "eventsub", "hmac", "pubsub"] }
+# twitch_oauth2 = { version = "0.13.0", features = ["reqwest"] }
+# twitch_types = "0.4.5"

@@ -8,7 +8,7 @@ use tokio::{
     sync::{OnceCell, RwLock},
     task::JoinHandle,
 };
-use twitch::init_twitch;
+use twitch::{init_events, init_twitch};
 use wpm::WpmGame;
 
 pub static WPM_GAME: OnceCell<Arc<RwLock<WpmGame>>> = OnceCell::const_new();
@@ -22,6 +22,7 @@ async fn main() -> anyhow::Result<()> {
     init_wpm_game().await;
     println!("Init HTTP server...");
     let http_join_handle = init_http_server().await;
+    init_events().await?;
     println!("Init Twitch...");
     init_twitch().await;
 
