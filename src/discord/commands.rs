@@ -42,10 +42,15 @@ async fn link(ctx: Context<'_>) -> Result<(), Error> {
 
     // Send the OAuth2 URL to the user
     let response = format!(
-        "Hello, {}! Please [click here to link your Twitch account]({}).",
-        u.name, oauth_url
+        "In order to link your Twitch account, [please click here]({}).",
+        oauth_url
     );
-    ctx.say(response).await?;
+
+    // Create a DM channel and send the message
+    let channel = u.create_dm_channel(&ctx).await?;
+    channel.say(&ctx, &response).await?;
+
+    ctx.reply("I've sent you a DM with instructions.").await?;
 
     Ok(())
 }

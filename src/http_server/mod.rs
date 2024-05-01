@@ -45,8 +45,10 @@ async fn discord_callback(
 
     match code {
         Some(code) => {
-            process_discord_callback(&state.pool, code).await?;
-            Ok("Successfully linked your Twitch account to Discord".to_string())
+            let username = process_discord_callback(&state.pool, code).await?;
+            Ok(format!(
+                "Successfully linked your Twitch account {username}. You can now close this window."
+            ))
         }
         None => Err(error::Error::InvalidRequest)?,
     }
@@ -139,7 +141,7 @@ async fn register_wpm(Query(params): Query<HashMap<String, String>>) -> impl Int
     StatusCode::OK
 }
 
-async fn process_discord_callback(pool: &PgPool, code: &str) -> Result<(), error::Error> {
+async fn process_discord_callback(pool: &PgPool, code: &str) -> Result<String, error::Error> {
     let client_id = std::env::var("DISCORD_CLIENT_ID").expect("missing DISCORD_CLIENT_ID");
     let client_secret = std::env::var("DISCORD_SECRET").expect("missing DISCORD_SECRET");
     let redirect_uri = std::env::var("DISCORD_REDIRECT_URI").expect("missing DISCORD_REDIRECT_URI");
@@ -212,5 +214,5 @@ async fn process_discord_callback(pool: &PgPool, code: &str) -> Result<(), error
         twitch_name
     ).execute(pool).await?;
 
-    Ok(())
+    Ok(twitch_name.to_string())
 }
