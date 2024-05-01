@@ -1,7 +1,9 @@
 use serde::{Deserialize, Serialize};
 
+mod redemption;
 mod reward;
 
+pub use redemption::*;
 pub use reward::*;
 
 #[derive(Serialize, Deserialize, Debug)]

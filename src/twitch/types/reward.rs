@@ -1,7 +1,8 @@
 use serde::{Deserialize, Serialize};
 
 use super::{
-    CooldownSetting, Image, RedemptionPerStreamLimitSetting, RedemptionPerUserStreamLimitSetting,
+    redemption::RedemptionsResponse, CooldownSetting, Image, RedemptionPerStreamLimitSetting,
+    RedemptionPerUserStreamLimitSetting,
 };
 
 #[derive(Serialize, Deserialize, Debug)]
@@ -40,6 +41,13 @@ impl Reward {
         client
             .create_reward(&self.title, self.cost, &self.prompt)
             .await
+    }
+
+    pub async fn get_pending_redemptions(
+        &self,
+        client: &crate::twitch::client::Client,
+    ) -> anyhow::Result<RedemptionsResponse> {
+        client.get_pending_redemptions(self.id.clone()).await
     }
 }
 

@@ -15,25 +15,35 @@ const REWARDS: &[(&str, u16, &str)] = &[
 
 struct EventHandler {
     client: Client,
+    rewards: Vec<Reward>,
 }
 
 impl EventHandler {
     pub fn new() -> Self {
         Self {
             client: Client::new(),
+            rewards: Vec::new(),
         }
     }
 
-    pub async fn run(&self) -> anyhow::Result<()> {
+    pub async fn run(&mut self) -> anyhow::Result<()> {
+        self.init_rewards().await?;
         self.manage_rewards().await?;
+        self.process_redemptions().await?;
+
+        Ok(())
+    }
+
+    async fn init_rewards(&mut self) -> anyhow::Result<()> {
+        let rewards = self.client.get_rewards().await?;
+        self.rewards = rewards.data;
 
         Ok(())
     }
 
     async fn manage_rewards(&self) -> anyhow::Result<()> {
-        let rewards = self.client.get_rewards().await?;
         for (title, cost, prompt) in REWARDS {
-            if rewards.data.iter().any(|r| r.title == *title) {
+            if self.rewards.iter().any(|r| r.title == *title) {
                 continue;
             }
             println!("{}", title);
@@ -45,10 +55,21 @@ impl EventHandler {
 
         Ok(())
     }
+
+    async fn process_redemptions(&self) -> anyhow::Result<()> {
+        for reward in &self.rewards {
+            let redemptions = reward.get_pending_redemptions(&self.client).await?;
+            for redemption in redemptions.data {
+                println!("{:#?}", redemption);
+            }
+        }
+
+        Ok(())
+    }
 }
 
 pub async fn init_events() -> anyhow::Result<()> {
-    let handler = EventHandler::new();
+    let mut handler = EventHandler::new();
     handler.run().await?;
 
     Ok(())

@@ -2,7 +2,7 @@ use std::env;
 
 use serde::de::DeserializeOwned;
 
-use super::types::RewardsResponse;
+use super::types::{RedemptionsResponse, RewardsResponse};
 
 #[allow(unused)]
 #[derive(Debug)]
@@ -131,7 +131,7 @@ impl Client {
     pub async fn get_pending_redemptions(
         &self,
         reward_id: String,
-    ) -> anyhow::Result<serde_json::Value> {
+    ) -> anyhow::Result<RedemptionsResponse> {
         let user_id = self.get_user().await?;
         let url = format!(
             "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id={user_id}&reward_id={reward_id}&status=UNFULFILLED"
