@@ -139,6 +139,31 @@ impl Client {
         self.api_request(&url).await
     }
 
+    pub async fn complete_redemption(
+        &self,
+        redemption_id: &str,
+        broadcaster_id: &str,
+        reward_id: &str,
+    ) -> anyhow::Result<serde_json::Value> {
+        let url = format!(
+            "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id={broadcaster_id}&id={redemption_id}&reward_id={reward_id}"
+        );
+        let client = reqwest::Client::new();
+        let req = serde_json::json!({
+            "status": "FULFILLED"
+        });
+        let response = client
+            .patch(&url)
+            .header("Client-ID", &self.client_id)
+            .header("Authorization", format!("Bearer {}", self.token))
+            .json(&req)
+            .send()
+            .await?;
+
+        let response = response.json().await?;
+        Ok(response)
+    }
+
     pub async fn get_user(&self) -> anyhow::Result<String> {
         let users = self.get_users().await?;
         let user_id = users["data"][0]["id"].as_str().unwrap();

@@ -140,7 +140,7 @@ impl RewardBuilder {
     // Build method to finalize and construct the Reward object
     pub fn build(self) -> Reward {
         Reward {
-            broadcaster_id: String::new(), // This needs to be set correctly for a real scenario
+            broadcaster_id: String::new(),
             broadcaster_login: String::new(),
             broadcaster_name: String::new(),
             id: String::new(),

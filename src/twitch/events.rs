@@ -2,10 +2,14 @@
 use std::env;
 
 use futures::StreamExt;
+use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 
-use crate::twitch::{client::Client, types::Reward};
+use crate::{
+    db::Pool,
+    twitch::{client::Client, types::Reward},
+};
 
 const REWARDS: &[(&str, u16, &str)] = &[
     ("3 Clacks", 100, "3 Clacks"),
@@ -26,10 +30,16 @@ impl EventHandler {
         }
     }
 
-    pub async fn run(&mut self) -> anyhow::Result<()> {
+    pub async fn run(&mut self, pool: Pool) -> anyhow::Result<()> {
         self.init_rewards().await?;
         self.manage_rewards().await?;
-        self.process_redemptions().await?;
+
+        loop {
+            println!("Processing redemptions...");
+            self.process_redemptions(&pool).await?;
+            // waits for 5 seconds
+            tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
+        }
 
         Ok(())
     }
@@ -56,11 +66,11 @@ impl EventHandler {
         Ok(())
     }
 
-    async fn process_redemptions(&self) -> anyhow::Result<()> {
+    async fn process_redemptions(&self, pool: &Pool) -> anyhow::Result<()> {
         for reward in &self.rewards {
             let redemptions = reward.get_pending_redemptions(&self.client).await?;
             for redemption in redemptions.data {
-                println!("{:#?}", redemption);
+                redemption.complete(&self.client).await?;
             }
         }
 
@@ -68,11 +78,12 @@ impl EventHandler {
     }
 }
 
-pub async fn init_events() -> anyhow::Result<()> {
-    let mut handler = EventHandler::new();
-    handler.run().await?;
-
-    Ok(())
+pub async fn init_events(pool: &Pool) -> JoinHandle<anyhow::Result<()>> {
+    let pool = pool.clone();
+    tokio::spawn(async move {
+        let mut handler = EventHandler::new();
+        handler.run(pool).await
+    })
 }
 
 // pub async fn init_webhook() -> anyhow::Result<()> {
