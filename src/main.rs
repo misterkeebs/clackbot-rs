@@ -16,7 +16,7 @@ use tokio::{
 use twitch::init_twitch;
 use wpm::WpmGame;
 
-use crate::discord::init_discord;
+use crate::{discord::init_discord, twitch::init_events};
 
 pub static WPM_GAME: OnceCell<Arc<RwLock<WpmGame>>> = OnceCell::const_new();
 pub static LIVE_WPM: OnceCell<Arc<AtomicU8>> = OnceCell::const_new();
@@ -38,8 +38,8 @@ async fn main() -> anyhow::Result<()> {
     init_wpm_game().await;
     println!("Init HTTP server...");
     let http_join_handle = init_http_server(&pool).await;
-    // println!("Init twitch event handler...");
-    // init_events().await?;
+    println!("Init twitch event handler...");
+    init_events().await?;
     println!("Init Discord...");
     init_discord().await?;
     println!("Init Twitch...");
