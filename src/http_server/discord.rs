@@ -25,7 +25,7 @@ pub async fn process_discord_callback(pool: &Pool, code: &str) -> Result<String,
         .await?;
 
     let body = res.json::<serde_json::Value>().await?;
-    println!("Response: {:?}", body);
+    log::trace!("Response: {:?}", body);
 
     let Some(access_token) = body["access_token"].as_str() else {
         return Err(error::Error::InvalidResponse(body));
@@ -38,7 +38,7 @@ pub async fn process_discord_callback(pool: &Pool, code: &str) -> Result<String,
         .await?;
     let user = user_res.json::<serde_json::Value>().await?;
 
-    println!("User: {:#?}", user);
+    log::trace!("User: {:#?}", user);
 
     let conns_res = client
         .get("https://discord.com/api/users/@me/connections")
@@ -47,8 +47,8 @@ pub async fn process_discord_callback(pool: &Pool, code: &str) -> Result<String,
         .await?;
     let conns = conns_res.json::<serde_json::Value>().await?;
 
-    println!("User: {:#?}", user);
-    println!("Connections: {:#?}", conns);
+    log::trace!("User: {:#?}", user);
+    log::trace!("Connections: {:#?}", conns);
 
     let twitch = conns
         .as_array()

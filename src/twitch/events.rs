@@ -39,7 +39,7 @@ impl EventHandler {
         self.manage_rewards().await?;
 
         loop {
-            println!("Processing redemptions...");
+            log::trace!("Processing redemptions...");
             let mut conn = pool.get().await?;
             self.process_redemptions(&mut conn).await?;
             // waits for 5 seconds
@@ -61,7 +61,7 @@ impl EventHandler {
             if self.rewards.iter().any(|r| r.title == *title) {
                 continue;
             }
-            println!("{}", title);
+            log::trace!("Reward title = {}", title);
             let reward = Reward::builder(title.to_string(), *cost as i32)
                 .prompt(prompt.to_string())
                 .build();
@@ -77,13 +77,13 @@ impl EventHandler {
         for reward in &self.rewards {
             let redemptions = reward.get_pending_redemptions(&self.client).await?;
             for redemption in redemptions.data {
-                println!("{:#?}", redemption);
+                log::trace!("found redemption = {:#?}", redemption);
                 let res = users
                     .filter(twitch_id.eq(&redemption.user_id))
                     .select(User::as_select())
                     .load(conn)
                     .await?;
-                println!("{:#?}", res);
+                log::trace!("user = {:#?}", res);
                 if res.len() != 1 {
                     continue;
                 }

@@ -35,7 +35,7 @@ impl Twitch {
     }
 
     pub async fn send(&self, msg: String) {
-        println!("Sending message: {}", msg);
+        log::info!("Sending message: {}", msg);
         self.tx.send(msg).await.unwrap();
     }
 }
@@ -55,7 +55,7 @@ pub async fn init_twitch() {
     let listener_join_handle = tokio::spawn(async move {
         let channel = std::env::var("TWITCH_CHANNEL").expect("TWITCH_CHANNEL is not set");
 
-        println!("Listening to channel: {}", channel);
+        log::debug!("Listening to channel: {}", channel);
         while let Some(message) = incoming_messages.recv().await {
             handle_message(&channel, &cli, message).await;
         }
@@ -66,7 +66,7 @@ pub async fn init_twitch() {
         let channel = std::env::var("TWITCH_CHANNEL").expect("TWITCH_CHANNEL is not set");
         let twitch = TWITCH.get().unwrap();
 
-        println!("Sending messages to channel: {}", channel);
+        log::debug!("Sending messages to channel: {}", channel);
         while let Some(msg) = twitch.rx.lock().await.recv().await {
             cli.privmsg(channel.clone(), msg)
                 .await
@@ -89,7 +89,7 @@ async fn handle_message(
             if msg.channel_login == channel {
                 let text = msg.message_text.clone();
                 let sender = msg.sender.login.clone();
-                println!("{}: {}", sender, text);
+                log::debug!("{}: {}", sender, text);
                 let badges = msg
                     .badges
                     .iter()

@@ -33,7 +33,7 @@ pub async fn start(port: String, pool: Pool) -> anyhow::Result<()> {
         .layer(Extension(State { pool }));
 
     let address = format!("0.0.0.0:{}", port);
-    println!("Listening on: {}", address);
+    log::info!("Listening on: {}", address);
     let listener = tokio::net::TcpListener::bind(&address).await?;
     axum::serve(listener, app).await?;
     Ok(())
@@ -64,7 +64,7 @@ async fn set_live_wpm(Query(params): Query<HashMap<String, String>>) -> impl Int
             return StatusCode::OK;
         }
 
-        println!("Setting live WPM to: {}", wpm);
+        log::trace!("Setting live WPM to: {}", wpm);
 
         LIVE_WPM.get().unwrap().store(wpm, Ordering::Relaxed);
 
@@ -79,7 +79,7 @@ async fn get_standings() -> Json<serde_json::Value> {
     let wpm_game = wpm_game.read().await;
 
     let wpm = LIVE_WPM.get().unwrap().load(Ordering::Relaxed);
-    println!("current WPM: {}", wpm);
+    log::debug!("current WPM: {}", wpm);
 
     let players = wpm_game
         .guesses()

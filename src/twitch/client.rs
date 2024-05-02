@@ -56,7 +56,7 @@ impl Client {
             .await?;
 
         let response = response.json::<serde_json::Value>().await?;
-        println!("{}", serde_json::to_string_pretty(&response).unwrap());
+        log::trace!("{}", serde_json::to_string_pretty(&response).unwrap());
         let access_token = response["access_token"].as_str().unwrap();
 
         Ok(access_token.to_string())
@@ -195,7 +195,10 @@ impl Client {
                 "session_id": session_id,
             }
         });
-        println!("{}", serde_json::to_string_pretty(&req).unwrap());
+        log::trace!(
+            "sub_event result = {}",
+            serde_json::to_string_pretty(&req).unwrap()
+        );
         let response = client
             .post(&url)
             .header("Client-ID", &self.client_id)
@@ -232,7 +235,10 @@ impl Client {
                 "secret": secret
             }
         });
-        println!("{}", serde_json::to_string_pretty(&req).unwrap());
+        log::trace!(
+            "eventsub/subscriptions = {}",
+            serde_json::to_string_pretty(&req).unwrap()
+        );
         let response = client
             .post(&url)
             .header("Client-ID", &self.client_id)

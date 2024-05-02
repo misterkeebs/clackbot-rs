@@ -11,8 +11,10 @@ chrono = "0.4.38"
 diesel = { version = "2.1.6", features = ["postgres", "chrono"] }
 diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
 dotenv = "0.15.0"
+env_logger = "0.11.3"
 futures = "0.3.30"
 futures-util = "0.3.30"
+log = "0.4.21"
 poise = "0.6.1"
 regex = "1.10.4"
 reqwest = { version = "0.12.4", features = ["json"] }

@@ -9,6 +9,7 @@ mod wpm;
 use std::sync::{atomic::AtomicU8, Arc};
 
 use db::Pool;
+use env_logger::Env;
 use tokio::{
     sync::{OnceCell, RwLock},
     task::JoinHandle,
@@ -24,18 +25,25 @@ pub static LIVE_WPM: OnceCell<Arc<AtomicU8>> = OnceCell::const_new();
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
+    let env = Env::default().filter_or("LOG_LEVEL", "clackbot=debug"); // Use MY_APP_LOG or default to debug
+    env_logger::init_from_env(env);
 
+    log::debug!("Connecting to database...");
     let pool = connect().await?;
 
-    println!("Init WPM game...");
+    log::debug!("Init WPM game...");
     init_wpm_game().await;
-    println!("Init HTTP server...");
+
+    log::debug!("Init HTTP server...");
     let http_join_handle = init_http_server(&pool).await;
-    println!("Init twitch event handler...");
+
+    log::debug!("Init twitch event handler...");
     let events_join_handle = init_events(&pool).await;
-    println!("Init Discord...");
+
+    log::debug!("Init Discord...");
     init_discord().await?;
-    println!("Init Twitch...");
+
+    log::debug!("Init Twitch...");
     init_twitch().await;
 
     let (_http_result, _events_result) = tokio::try_join!(http_join_handle, events_join_handle)?;

@@ -30,7 +30,7 @@ impl User {
         client: &Client,
     ) -> anyhow::Result<()> {
         let Some(amount) = extract_int(&redemption.reward.title) else {
-            println!(
+            log::warn!(
                 "Failed to extract amount from reward title: {:#?}",
                 redemption
             );
