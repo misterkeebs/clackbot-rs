@@ -5,7 +5,7 @@ use regex::Regex;
 
 use crate::schema::users;
 use crate::schema::users::dsl::*;
-use crate::twitch::{Client, Redemption};
+use crate::twitch::{Client, Redemption, TWITCH};
 
 #[derive(Queryable, Selectable, Debug)]
 #[diesel(table_name = users)]
@@ -43,6 +43,20 @@ impl User {
             .get_result::<User>(conn)
             .await?;
         redemption.complete(client).await?;
+
+        TWITCH
+            .get()
+            .unwrap()
+            .send(
+                format!(
+                    "{} your \"{}\" reward has been processed! You've got credited {} clacks, you now have {} clacks.",
+                    self.twitch_name.as_ref().unwrap_or(&self.username),
+                    redemption.reward.title,
+                    amount,
+                    self.clacks + amount
+                ),
+            )
+            .await;
 
         Ok(())
     }

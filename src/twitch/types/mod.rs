@@ -2,9 +2,11 @@ use serde::{Deserialize, Serialize};
 
 mod redemption;
 mod reward;
+mod websocket;
 
 pub use redemption::*;
 pub use reward::*;
+pub use websocket::*;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Image {

@@ -14,10 +14,13 @@ use tokio::{
     sync::{OnceCell, RwLock},
     task::JoinHandle,
 };
-use twitch::init_twitch;
 use wpm::WpmGame;
 
-use crate::{db::connect, discord::init_discord, twitch::init_events};
+use crate::{
+    db::connect,
+    discord::init_discord,
+    twitch::{init_event_handler, init_rewards_monitor},
+};
 
 pub static WPM_GAME: OnceCell<Arc<RwLock<WpmGame>>> = OnceCell::const_new();
 pub static LIVE_WPM: OnceCell<Arc<AtomicU8>> = OnceCell::const_new();
@@ -35,19 +38,29 @@ async fn main() -> anyhow::Result<()> {
     log::debug!("Init WPM game...");
     init_wpm_game().await;
 
+    log::debug!("Init Twitch chat monitor...");
+    let twitch_join_handle = init_twitch().await;
+
+    log::debug!("Init Twitch rewards monitor...");
+    let rewards_join_handle = init_rewards_monitor(&pool).await;
+
+    log::debug!("Init Twitch event handler...");
+    let (ev_prod_handle, ev_cons_handle) = init_event_handler().await?;
+
     log::debug!("Init HTTP server...");
     let http_join_handle = init_http_server(&pool).await;
-
-    log::debug!("Init twitch event handler...");
-    let events_join_handle = init_events(&pool).await;
 
     log::debug!("Init Discord...");
     init_discord().await?;
 
-    log::debug!("Init Twitch...");
-    init_twitch().await;
-
-    let (_http_result, _events_result) = tokio::try_join!(http_join_handle, events_join_handle)?;
+    // let (_twitch_result, _http_result, _rewards_result, _ev_prod_result, _ev_cons_result) = tokio::try_join!(
+    _ = tokio::try_join!(
+        twitch_join_handle,
+        http_join_handle,
+        rewards_join_handle,
+        ev_prod_handle,
+        ev_cons_handle,
+    )?;
 
     Ok(())
 }
@@ -65,5 +78,11 @@ async fn init_http_server(pool: &Pool) -> JoinHandle<Result<(), anyhow::Error>> 
     tokio::spawn(async move {
         let port = std::env::var("PORT").unwrap_or_else(|_| "8080".to_string());
         http_server::start(port, pool).await
+    })
+}
+
+async fn init_twitch() -> JoinHandle<()> {
+    tokio::spawn(async move {
+        twitch::init_twitch().await;
     })
 }

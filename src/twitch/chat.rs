@@ -41,7 +41,9 @@ impl Twitch {
 }
 
 pub async fn init_twitch() {
+    log::debug!("Initializing Twitch...");
     TWITCH.set(Twitch::new()).unwrap();
+    log::debug!("Done initializing Twitch...");
 
     let token = std::env::var("TWITCH_TOKEN").expect("TWITCH_TOKEN is not set");
     let channel = std::env::var("TWITCH_CHANNEL").expect("TWITCH_CHANNEL is not set");

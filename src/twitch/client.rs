@@ -12,7 +12,7 @@ pub struct Client {
     token: String,
 
     access_token: Option<String>,
-    user_id: Option<String>,
+    user_access_token: String,
 }
 
 #[allow(unused)]
@@ -23,23 +23,12 @@ impl Client {
             secret: env::var("TWITCH_SECRET").unwrap(),
             token: env::var("TWITCH_TOKEN").unwrap(),
             access_token: None,
-            user_id: None,
+            user_access_token: env::var("TWITCH_USER_TOKEN").unwrap(),
         }
     }
 
     pub async fn with_access_token(mut self) -> anyhow::Result<Self> {
         self.access_token = Some(self.get_access_token().await?);
-        Ok(self)
-    }
-
-    pub async fn with_token(mut self, token: String) -> anyhow::Result<Self> {
-        self.access_token = Some(token);
-        self.user_id = Some(
-            self.get_users().await?["data"][0]["id"]
-                .as_str()
-                .unwrap()
-                .to_string(),
-        );
         Ok(self)
     }
 
@@ -88,7 +77,7 @@ impl Client {
         cost: i32,
         prompt: &str,
     ) -> anyhow::Result<RewardsResponse> {
-        let user_id = self.get_user().await?;
+        let user_id = self.get_user_id().await?;
         let url = format!(
             "https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={user_id}"
         );
@@ -121,7 +110,7 @@ impl Client {
     }
 
     pub async fn get_rewards(&self) -> anyhow::Result<RewardsResponse> {
-        let user_id = self.get_user().await?;
+        let user_id = self.get_user_id().await?;
         let url = format!(
             "https://api.twitch.tv/helix/channel_points/custom_rewards?broadcaster_id={user_id}"
         );
@@ -132,7 +121,7 @@ impl Client {
         &self,
         reward_id: String,
     ) -> anyhow::Result<RedemptionsResponse> {
-        let user_id = self.get_user().await?;
+        let user_id = self.get_user_id().await?;
         let url = format!(
             "https://api.twitch.tv/helix/channel_points/custom_rewards/redemptions?broadcaster_id={user_id}&reward_id={reward_id}&status=UNFULFILLED"
         );
@@ -164,7 +153,7 @@ impl Client {
         Ok(response)
     }
 
-    pub async fn get_user(&self) -> anyhow::Result<String> {
+    pub async fn get_user_id(&self) -> anyhow::Result<String> {
         let users = self.get_users().await?;
         let user_id = users["data"][0]["id"].as_str().unwrap();
         Ok(user_id.to_string())
@@ -183,12 +172,13 @@ impl Client {
     ) -> anyhow::Result<serde_json::Value> {
         let url = format!("https://api.twitch.tv/helix/eventsub/subscriptions");
         let client = reqwest::Client::new();
+        let user_id = self.get_user_id().await?;
         let req = serde_json::json!({
             "type": typ,
             "version": ver,
             "condition": {
-                "user_id": self.user_id,
-                "broadcaster_user_id": self.user_id,
+                "user_id": user_id,
+                "broadcaster_user_id": user_id,
             },
             "transport": {
                 "method": "websocket",
@@ -196,7 +186,7 @@ impl Client {
             }
         });
         log::trace!(
-            "sub_event result = {}",
+            "sub_event request = {}",
             serde_json::to_string_pretty(&req).unwrap()
         );
         let response = client
@@ -204,53 +194,17 @@ impl Client {
             .header("Client-ID", &self.client_id)
             .header(
                 "Authorization",
-                format!("Bearer {}", self.access_token.as_ref().unwrap()),
+                format!("Bearer {}", self.user_access_token),
             )
             .json(&req)
             .send()
             .await?;
 
         let response = response.json::<serde_json::Value>().await?;
-        Ok(response)
-    }
-
-    pub async fn subscribe(
-        &self,
-        typ: &str,
-        secret: &str,
-        callback: &str,
-    ) -> anyhow::Result<serde_json::Value> {
-        let url = format!("https://api.twitch.tv/helix/eventsub/subscriptions");
-        let client = reqwest::Client::new();
-        let req = serde_json::json!({
-            "type": typ,
-            "version": "2",
-            "condition": {
-                "broadcaster_user_id": self.user_id,
-                "moderator_user_id": self.user_id,
-            },
-            "transport": {
-                "method": "webhook",
-                "callback": callback,
-                "secret": secret
-            }
-        });
         log::trace!(
-            "eventsub/subscriptions = {}",
-            serde_json::to_string_pretty(&req).unwrap()
+            "sub_event response = {}",
+            serde_json::to_string_pretty(&response).unwrap()
         );
-        let response = client
-            .post(&url)
-            .header("Client-ID", &self.client_id)
-            .header(
-                "Authorization",
-                format!("Bearer {}", self.access_token.as_ref().unwrap()),
-            )
-            .json(&req)
-            .send()
-            .await?;
-
-        let response = response.json::<serde_json::Value>().await?;
         Ok(response)
     }
 }

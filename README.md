@@ -2,6 +2,11 @@
 
 https://id.twitch.tv/oauth2/authorize?client_id=&redirect_uri=http://localhost&response_type=token&scope=channel:moderate+chat:edit+chat:read+channel:read:redemptions+channel:manage:redemptions
 
+## User Token
+
+brew install twitchdev/twitch/twitch-cli
+twitch token -u -s 'channel:manage:redemptions' -p 8080
+
 # Pending Clacks
 
 ```csv
