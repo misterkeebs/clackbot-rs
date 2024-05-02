@@ -13,6 +13,7 @@ diesel::table! {
         twitch_id -> Nullable<Varchar>,
         #[max_length = 255]
         twitch_name -> Nullable<Varchar>,
+        clacks -> Int4,
         modified_at -> Nullable<Timestamp>,
         created_at -> Nullable<Timestamp>,
     }

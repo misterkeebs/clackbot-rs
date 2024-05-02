@@ -1,6 +1,8 @@
 #![allow(unused)]
 use std::env;
 
+use diesel::prelude::*;
+use diesel_async::{AsyncConnection, AsyncPgConnection, RunQueryDsl};
 use futures::StreamExt;
 use tokio::task::JoinHandle;
 use tokio_tungstenite::{connect_async, tungstenite::Message};
@@ -8,6 +10,8 @@ use url::Url;
 
 use crate::{
     db::Pool,
+    models::User,
+    schema::users,
     twitch::{client::Client, types::Reward},
 };
 
@@ -36,7 +40,8 @@ impl EventHandler {
 
         loop {
             println!("Processing redemptions...");
-            self.process_redemptions(&pool).await?;
+            let mut conn = pool.get().await?;
+            self.process_redemptions(&mut conn).await?;
             // waits for 5 seconds
             tokio::time::sleep(tokio::time::Duration::from_secs(5)).await;
         }
@@ -66,11 +71,25 @@ impl EventHandler {
         Ok(())
     }
 
-    async fn process_redemptions(&self, pool: &Pool) -> anyhow::Result<()> {
+    async fn process_redemptions(&self, conn: &mut AsyncPgConnection) -> anyhow::Result<()> {
+        use crate::schema::users::dsl::*;
+
         for reward in &self.rewards {
             let redemptions = reward.get_pending_redemptions(&self.client).await?;
             for redemption in redemptions.data {
-                redemption.complete(&self.client).await?;
+                println!("{:#?}", redemption);
+                let res = users
+                    .filter(twitch_id.eq(&redemption.user_id))
+                    .select(User::as_select())
+                    .load(conn)
+                    .await?;
+                println!("{:#?}", res);
+                if res.len() != 1 {
+                    continue;
+                }
+                let user = &res[0];
+                user.process(redemption, conn, &self.client).await?;
+                // redemption.complete(&self.client).await?;
             }
         }
 

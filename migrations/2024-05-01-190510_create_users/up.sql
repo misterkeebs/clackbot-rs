@@ -5,6 +5,7 @@ CREATE TABLE users (
   discord_name VARCHAR(255),
   twitch_id VARCHAR(255),
   twitch_name VARCHAR(255),
+  clacks INTEGER NOT NULL DEFAULT 0,
   modified_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
   created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
 );
