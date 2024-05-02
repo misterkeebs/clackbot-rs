@@ -23,7 +23,7 @@ pub struct User {
 }
 
 impl User {
-    pub async fn process(
+    pub async fn process_redemption(
         &self,
         redemption: Redemption,
         conn: &mut AsyncPgConnection,

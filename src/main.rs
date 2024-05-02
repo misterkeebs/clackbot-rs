@@ -25,7 +25,8 @@ pub static LIVE_WPM: OnceCell<Arc<AtomicU8>> = OnceCell::const_new();
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
     dotenv::dotenv().ok();
-    let env = Env::default().filter_or("LOG_LEVEL", "clackbot=debug"); // Use MY_APP_LOG or default to debug
+
+    let env = Env::default().filter_or("LOG_LEVEL", "clackbot=debug");
     env_logger::init_from_env(env);
 
     log::debug!("Connecting to database...");

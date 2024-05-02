@@ -88,8 +88,8 @@ impl EventHandler {
                     continue;
                 }
                 let user = &res[0];
-                user.process(redemption, conn, &self.client).await?;
-                // redemption.complete(&self.client).await?;
+                user.process_redemption(redemption, conn, &self.client)
+                    .await?;
             }
         }
 
