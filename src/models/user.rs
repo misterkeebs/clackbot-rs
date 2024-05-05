@@ -7,7 +7,7 @@ use crate::schema::users;
 use crate::schema::users::dsl::*;
 use crate::twitch::{Client, Redemption, TWITCH};
 
-#[derive(Queryable, Selectable, Debug)]
+#[derive(Queryable, Selectable, Debug, Clone)]
 #[diesel(table_name = users)]
 #[diesel(check_for_backend(diesel::pg::Pg))]
 pub struct User {
@@ -23,6 +23,23 @@ pub struct User {
 }
 
 impl User {
+    pub async fn get_by_twitch_id(
+        conn: &mut AsyncPgConnection,
+        tid: String,
+    ) -> anyhow::Result<Option<User>> {
+        let data: Vec<User> = users::table
+            .filter(users::twitch_id.eq(tid))
+            .select(User::as_select())
+            .load(conn)
+            .await?;
+
+        if data.len() < 1 {
+            return Ok(None);
+        }
+
+        Ok(Some(data[0].clone()))
+    }
+
     pub async fn process_redemption(
         &self,
         redemption: Redemption,

@@ -8,7 +8,11 @@ use tokio::{
 use tokio_tungstenite::{connect_async, tungstenite::Message};
 use url::Url;
 
-use crate::twitch::{Payload, WebSocketMessage};
+use crate::{
+    db::Pool,
+    models::User,
+    twitch::{EventDetail, Payload, WebSocketMessage, TWITCH},
+};
 
 use super::{Client, NotificationData};
 
@@ -67,8 +71,9 @@ pub async fn start_event_listener(tx: Sender<NotificationData>) -> anyhow::Resul
     Ok(())
 }
 
-pub async fn init_event_handler() -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, JoinHandle<()>)>
-{
+pub async fn init_event_handler(
+    pool: &Pool,
+) -> anyhow::Result<(JoinHandle<anyhow::Result<()>>, JoinHandle<()>)> {
     let (tx, mut rx) = channel(100);
 
     let prod_handle = tokio::spawn(async move {
@@ -80,12 +85,49 @@ pub async fn init_event_handler() -> anyhow::Result<(JoinHandle<anyhow::Result<(
         Ok(())
     });
 
+    let pool = pool.clone();
     let consumer_handle = tokio::spawn(async move {
         while let Some(data) = rx.recv().await {
             log::info!("Received EventSub notification: {data:#?}");
+            match handle_event(&pool, data).await {
+                Ok(_) => log::info!("Event handled successfully"),
+                Err(e) => log::error!("Error handling event: {e}"),
+            };
         }
         log::info!("EventSub notification channel closed");
     });
 
     Ok((prod_handle, consumer_handle))
+}
+
+async fn handle_event(pool: &Pool, data: NotificationData) -> anyhow::Result<()> {
+    match data.event {
+        EventDetail::ChannelPointsCustomRewardRedemptionAdd(event) => {
+            log::info!("Redemption: {} - {}", event.user_id, event.reward.title);
+            let mut conn = pool.get().await?;
+            match User::get_by_twitch_id(&mut conn, event.user_id.clone()).await? {
+                None => {
+                    let twitch = TWITCH.get().unwrap();
+                    let discord = match env::var("DISCORD_INVITE") {
+                        Ok(channel) => format!(": {channel}"),
+                        Err(_) => "".to_string(),
+                    };
+                    twitch
+                        .send(format!(
+                            "{} you need to link your Twitch account in our Discord{}. For linking, use the /link command on the #bot-spam channel. As soon as you link it, all pending rewards will be claimed automatically.",
+                            event.user_name, discord
+                        ))
+                        .await;
+                }
+                Some(_) => {
+                    // user.process_redemption(event, &mut conn).await?;
+                }
+            };
+        }
+        EventDetail::Generic(_event) => {
+            log::info!("Generic Event: {}", data.subscription.typ)
+        }
+    }
+
+    Ok(())
 }

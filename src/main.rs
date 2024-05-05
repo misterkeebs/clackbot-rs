@@ -45,7 +45,7 @@ async fn main() -> anyhow::Result<()> {
     let rewards_join_handle = init_rewards_monitor(&pool).await;
 
     log::debug!("Init Twitch event handler...");
-    let (ev_prod_handle, ev_cons_handle) = init_event_handler().await?;
+    let (ev_prod_handle, ev_cons_handle) = init_event_handler(&pool).await?;
 
     log::debug!("Init HTTP server...");
     let http_join_handle = init_http_server(&pool).await;

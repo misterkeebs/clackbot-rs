@@ -2,6 +2,8 @@ use serde::{Deserialize, Deserializer, Serialize};
 use serde_json::Value;
 use std::collections::HashMap;
 
+use super::SimpleReward;
+
 // Base structure for a WebSocket message from Twitch
 #[derive(Debug, Serialize)]
 pub struct WebSocketMessage {
@@ -57,7 +59,28 @@ pub struct SessionData {
 #[derive(Debug, Serialize, Deserialize)]
 pub struct NotificationData {
     pub subscription: SubscriptionDetail,
-    pub event: HashMap<String, serde_json::Value>, // Generic JSON object as event data structure can vary
+    pub event: EventDetail,
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+#[serde(untagged)]
+pub enum EventDetail {
+    ChannelPointsCustomRewardRedemptionAdd(ChannelPointsCustomRewardRedemptionAdd),
+    Generic(HashMap<String, serde_json::Value>),
+}
+
+#[derive(Debug, Serialize, Deserialize)]
+pub struct ChannelPointsCustomRewardRedemptionAdd {
+    pub id: String,
+    pub user_id: String,
+    pub user_login: String,
+    pub user_name: String,
+    pub broadcaster_user_id: String,
+    pub broadcaster_user_login: String,
+    pub broadcaster_user_name: String,
+    pub redeemed_at: String,
+    pub reward: SimpleReward,
+    pub user_input: Option<String>,
 }
 
 // Revocation message data
@@ -78,7 +101,7 @@ pub struct SubscriptionDetail {
     pub id: String,
     pub status: String,
     #[serde(rename = "type")]
-    pub type_: String,
+    pub typ: String,
     pub version: String,
     pub cost: i32,
     pub condition: HashMap<String, serde_json::Value>, // Generic JSON object as condition structure can vary
@@ -134,6 +157,8 @@ impl<'de> Deserialize<'de> for WebSocketMessage {
 
 #[cfg(test)]
 mod test {
+    use serde_json::json;
+
     use super::*;
 
     #[test]
@@ -170,5 +195,29 @@ mod test {
             }
             _ => panic!("Unexpected payload type"),
         }
+    }
+
+    #[test]
+    fn test_event_detail() {
+        let detail = json!( {
+          "broadcaster_user_name": "MisterKeebs",
+          "user_name": "MisterKeebs",
+          "status": "unfulfilled",
+          "redeemed_at": "2024-05-04T02:16:30.409485142Z",
+          "id": "169d650a-d573-41f2-bff0-8e51ac6f8d40",
+          "user_id": "11028617",
+          "broadcaster_user_id": "11028617",
+          "broadcaster_user_login": "misterkeebs",
+          "user_login": "misterkeebs",
+          "reward": {
+            "cost": 100,
+            "id": "4d2f55b1-15ed-45b2-9902-ddff7db91c7c",
+            "prompt": "3 Clacks",
+            "title": "3 Clacks"
+          },
+          "user_input": ""
+        });
+
+        _ = serde_json::from_value::<EventDetail>(detail).unwrap();
     }
 }
