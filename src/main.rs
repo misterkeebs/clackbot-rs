@@ -81,8 +81,9 @@ async fn init_http_server(pool: &Pool) -> JoinHandle<Result<(), anyhow::Error>> 
     })
 }
 
-async fn init_twitch() -> JoinHandle<()> {
+async fn init_twitch() -> JoinHandle<anyhow::Result<()>> {
     tokio::spawn(async move {
-        twitch::init_twitch().await;
+        twitch::init_twitch().await?;
+        Ok(())
     })
 }

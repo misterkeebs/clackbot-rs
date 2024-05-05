@@ -1,6 +1,7 @@
 use core::fmt;
 use std::{fmt::Formatter, sync::Arc};
 
+use anyhow::Context;
 use regex::Regex;
 use tokio::sync::{
     mpsc::{channel, Receiver, Sender},
@@ -40,13 +41,13 @@ impl Twitch {
     }
 }
 
-pub async fn init_twitch() {
+pub async fn init_twitch() -> anyhow::Result<()> {
     log::debug!("Initializing Twitch...");
-    TWITCH.set(Twitch::new()).unwrap();
+    TWITCH.set(Twitch::new())?;
     log::debug!("Done initializing Twitch...");
 
-    let token = std::env::var("TWITCH_TOKEN").expect("TWITCH_TOKEN is not set");
-    let channel = std::env::var("TWITCH_CHANNEL").expect("TWITCH_CHANNEL is not set");
+    let token = std::env::var("TWITCH_TOKEN").context("TWITCH_TOKEN is not set")?;
+    let channel = std::env::var("TWITCH_CHANNEL").context("TWITCH_CHANNEL is not set")?;
 
     let config =
         ClientConfig::new_simple(StaticLoginCredentials::new(channel.clone(), Some(token)));
@@ -54,12 +55,11 @@ pub async fn init_twitch() {
         TwitchIRCClient::<SecureTCPTransport, StaticLoginCredentials>::new(config);
 
     let cli = client.clone();
+    let ch = channel.clone();
     let listener_join_handle = tokio::spawn(async move {
-        let channel = std::env::var("TWITCH_CHANNEL").expect("TWITCH_CHANNEL is not set");
-
-        log::debug!("Listening to channel: {}", channel);
+        log::debug!("Listening to channel: {}", ch);
         while let Some(message) = incoming_messages.recv().await {
-            handle_message(&channel, &cli, message).await;
+            handle_message(&ch, &cli, message).await;
         }
     });
 
@@ -69,16 +69,18 @@ pub async fn init_twitch() {
         let twitch = TWITCH.get().unwrap();
 
         log::debug!("Sending messages to channel: {}", channel);
-        while let Some(msg) = twitch.rx.lock().await.recv().await {
-            cli.privmsg(channel.clone(), msg)
-                .await
-                .expect("Failed to send message");
+        while let Some(ref msg) = twitch.rx.lock().await.recv().await {
+            if let Err(err) = cli.privmsg(channel.clone(), msg.clone()).await {
+                log::error!("Error sending message '{msg}': {err}");
+            }
         }
     });
 
-    client.join(channel).unwrap();
-    listener_join_handle.await.unwrap();
-    sender_join_handle.await.unwrap();
+    client.join(channel)?;
+    listener_join_handle.await?;
+    sender_join_handle.await?;
+
+    Ok(())
 }
 
 async fn handle_message(

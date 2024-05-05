@@ -1,8 +1,5 @@
 use chrono::{DateTime, Utc};
-use diesel_async::AsyncPgConnection;
 use serde::{Deserialize, Serialize};
-
-use crate::models::User;
 
 #[derive(Serialize, Deserialize, Debug)]
 pub struct Redemption {
@@ -25,10 +22,6 @@ impl Redemption {
             .complete_redemption(&self.id, &self.broadcaster_id, &self.reward.id)
             .await?;
         Ok(())
-    }
-
-    pub async fn get_user(&self, conn: &mut AsyncPgConnection) -> anyhow::Result<Option<User>> {
-        User::get_by_twitch_id(conn, self.user_id.clone()).await
     }
 }
 
