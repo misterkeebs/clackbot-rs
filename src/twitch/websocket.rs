@@ -114,7 +114,7 @@ async fn handle_event(pool: &Pool, data: NotificationData) -> anyhow::Result<()>
                     };
                     twitch
                         .send(format!(
-                            "{} you need to link your Twitch account in our Discord{}. For linking, use the /link command on the #bot-spam channel. As soon as you link it, all pending rewards will be claimed automatically.",
+                            "{} you need to link your Twitch account in our Discord{} using the /link command on the #bot-spam channel. As soon as do, all pending rewards will be processed automatically.",
                             event.user_name, discord
                         ))
                         .await;
