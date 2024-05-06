@@ -9,7 +9,8 @@ anyhow = "1.0.82"
 axum = "0.7.5"
 chrono = "0.4.38"
 diesel = { version = "2.1.6", features = ["postgres", "chrono"] }
-diesel-async = { version = "0.4.1", features = ["postgres", "deadpool"] }
+diesel-async = { version = "0.4.1", features = ["postgres", "deadpool", "async-connection-wrapper"] }
+diesel_async_migrations = "0.12"
 dotenv = "0.15.0"
 env_logger = "0.11.3"
 futures = "0.3.30"

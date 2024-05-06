@@ -5,7 +5,10 @@ use diesel_async::{
     },
     AsyncPgConnection,
 };
+use diesel_async_migrations::{embed_migrations, EmbeddedMigrations};
 use thiserror::Error;
+
+const MIGRATIONS: EmbeddedMigrations = embed_migrations!();
 
 #[derive(Error, Debug)]
 pub enum Error {
@@ -29,6 +32,9 @@ pub async fn connect() -> anyhow::Result<Pool> {
     let db_url = std::env::var("DATABASE_URL").unwrap();
     let config = AsyncDieselConnectionManager::<diesel_async::AsyncPgConnection>::new(db_url);
     let inner = deadpool::Pool::builder(config).build()?;
+
+    let mut conn = inner.get().await?;
+    MIGRATIONS.run_pending_migrations(&mut conn).await?;
 
     Ok(Pool { inner })
 }
