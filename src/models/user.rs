@@ -3,9 +3,11 @@ use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
 use regex::Regex;
 
-use crate::schema::users;
 use crate::schema::users::dsl::*;
+use crate::schema::{transactions, users};
 use crate::twitch::{Client, Redemption, TWITCH};
+
+use super::NewTransaction;
 
 #[derive(Queryable, Selectable, Debug, Clone)]
 #[diesel(table_name = users)]
@@ -53,6 +55,17 @@ impl User {
             );
             return Ok(());
         };
+
+        let transaction = NewTransaction {
+            user_id: self.id,
+            description: format!("Redeemed Twitch reward '{}'", redemption.reward.title),
+            clacks: amount,
+        };
+
+        diesel::insert_into(transactions::table)
+            .values(&transaction)
+            .execute(conn)
+            .await?;
 
         diesel::update(users)
             .filter(users::id.eq(&self.id))
