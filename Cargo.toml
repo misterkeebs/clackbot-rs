@@ -17,6 +17,7 @@ futures = "0.3.30"
 futures-util = "0.3.30"
 log = "0.4.21"
 poise = "0.6.1"
+rand = "0.8.5"
 regex = "1.10.4"
 reqwest = { version = "0.12.4", features = ["json"] }
 serde = { version = "1.0.198", features = ["derive"] }

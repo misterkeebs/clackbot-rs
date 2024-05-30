@@ -322,6 +322,7 @@ dependencies = [
  "futures-util",
  "log",
  "poise",
+ "rand",
  "regex",
  "reqwest 0.12.4",
  "serde",

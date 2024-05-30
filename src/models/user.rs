@@ -59,6 +59,37 @@ impl User {
         Ok(Some(data[0].clone()))
     }
 
+    pub async fn get_or_create_discord_user(
+        conn: &mut AsyncPgConnection,
+        discord_user: &poise::serenity_prelude::model::user::User,
+    ) -> anyhow::Result<User> {
+        let did = discord_user.id.get().to_string();
+        let user = User::get_by_discord_id(conn, did.clone()).await?;
+
+        if let Some(user) = user {
+            return Ok(user);
+        }
+
+        let new_user = NewUser {
+            username: &discord_user.name,
+            discord_id: Some(&did),
+            discord_name: discord_user.global_name.as_deref(),
+            twitch_id: None,
+            twitch_name: None,
+        };
+
+        diesel::insert_into(users::table)
+            .values(&new_user)
+            .execute(conn)
+            .await?;
+
+        let Some(user) = User::get_by_discord_id(conn, did).await? else {
+            return Err(anyhow::anyhow!("Failed to create user"));
+        };
+
+        Ok(user)
+    }
+
     pub async fn process_redemption(
         &self,
         redemption: Redemption,
@@ -104,6 +135,32 @@ impl User {
                 ),
             )
             .await;
+
+        Ok(())
+    }
+
+    pub async fn add_clacks(
+        &self,
+        conn: &mut AsyncPgConnection,
+        description: &str,
+        amount: i32,
+    ) -> anyhow::Result<()> {
+        let transaction = NewTransaction {
+            user_id: self.id,
+            description: description.to_string(),
+            clacks: amount,
+        };
+
+        diesel::insert_into(transactions::table)
+            .values(&transaction)
+            .execute(conn)
+            .await?;
+
+        diesel::update(users)
+            .filter(users::id.eq(&self.id))
+            .set(users::clacks.eq(clacks + amount))
+            .get_result::<User>(conn)
+            .await?;
 
         Ok(())
     }
