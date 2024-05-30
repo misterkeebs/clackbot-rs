@@ -42,6 +42,23 @@ impl User {
         Ok(Some(data[0].clone()))
     }
 
+    pub async fn get_by_discord_id(
+        conn: &mut AsyncPgConnection,
+        did: String,
+    ) -> anyhow::Result<Option<User>> {
+        let data: Vec<User> = users::table
+            .filter(users::discord_id.eq(did))
+            .select(User::as_select())
+            .load(conn)
+            .await?;
+
+        if data.len() < 1 {
+            return Ok(None);
+        }
+
+        Ok(Some(data[0].clone()))
+    }
+
     pub async fn process_redemption(
         &self,
         redemption: Redemption,

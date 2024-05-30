@@ -1,21 +1,36 @@
 use poise::serenity_prelude::*;
 
-struct Data {} // User data, which is stored and accessible in all command invocations
+use crate::{db::Pool, models::User};
+
+struct Data {
+    pool: Pool,
+}
+
+impl Data {
+    async fn get_user(&self, id: u64) -> anyhow::Result<Option<User>> {
+        let mut conn = self.pool.get().await?;
+        let id = id.to_string();
+        let user = User::get_by_discord_id(&mut conn, id).await?;
+        Ok(user)
+    }
+}
+
 type Context<'a> = poise::Context<'a, Data, Error>;
 
-pub async fn init_discord() -> anyhow::Result<()> {
+pub async fn init_discord(pool: &Pool) -> anyhow::Result<()> {
     let token = std::env::var("DISCORD_TOKEN").expect("missing DISCORD_TOKEN");
     let intents = GatewayIntents::non_privileged();
 
+    let pool = pool.clone();
     let framework = poise::Framework::builder()
         .options(poise::FrameworkOptions {
-            commands: vec![link()],
+            commands: vec![link(), clacks()],
             ..Default::default()
         })
         .setup(|ctx, _ready, framework| {
             Box::pin(async move {
                 poise::builtins::register_globally(ctx, &framework.options().commands).await?;
-                Ok(Data {})
+                Ok(Data { pool })
             })
         })
         .build();
@@ -51,6 +66,29 @@ async fn link(ctx: Context<'_>) -> Result<(), Error> {
     channel.say(&ctx, &response).await?;
 
     ctx.reply("I've sent you a DM with instructions.").await?;
+
+    Ok(())
+}
+
+#[poise::command(prefix_command, slash_command)]
+async fn clacks(ctx: Context<'_>) -> Result<(), Error> {
+    match ctx.data().get_user(ctx.author().id.get()).await {
+        Ok(Some(user)) => {
+            ctx.reply(format!("You have {} clacks.", user.clacks))
+                .await?;
+        }
+        Ok(None) => {
+            ctx.reply("You have no clacks.").await?;
+        }
+        Err(e) => {
+            log::error!("Error getting user: {:?}", e);
+            ctx.reply(format!(
+                "An error occurred trying to retrieve your user: {}",
+                e
+            ))
+            .await?;
+        }
+    }
 
     Ok(())
 }

@@ -51,7 +51,7 @@ async fn main() -> anyhow::Result<()> {
     let http_join_handle = init_http_server(&pool).await;
 
     log::debug!("Init Discord...");
-    init_discord().await?;
+    init_discord(&pool).await?;
 
     // let (_twitch_result, _http_result, _rewards_result, _ev_prod_result, _ev_cons_result) = tokio::try_join!(
     _ = tokio::try_join!(
