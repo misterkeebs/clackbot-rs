@@ -1,11 +1,9 @@
 use poise::serenity_prelude::*;
-use rand::{
-    distributions::{Distribution, WeightedIndex},
-    rngs::StdRng,
-    SeedableRng,
-};
 
-use crate::{db::Pool, models::User};
+use crate::{
+    db::Pool,
+    models::{DailyResult, User},
+};
 
 struct Data {
     pool: Pool,
@@ -29,17 +27,10 @@ impl Data {
         Ok(user)
     }
 
-    async fn add_clacks(
-        &self,
-        user: &poise::serenity_prelude::User,
-        description: &str,
-        clacks: i32,
-    ) -> anyhow::Result<i32> {
+    async fn run_daily(&self, user: &poise::serenity_prelude::User) -> anyhow::Result<DailyResult> {
         let mut conn = self.pool.get().await?;
-        let user = self.get_or_create_user(user).await?;
-        user.add_clacks(&mut conn, description, clacks).await?;
-
-        Ok(user.clacks + clacks)
+        let user = User::get_or_create_discord_user(&mut conn, user).await?;
+        user.claim_daily(&mut conn).await
     }
 }
 
@@ -131,32 +122,21 @@ async fn clacks(ctx: Context<'_>) -> Result<(), Error> {
 /// Gives the user a random number of clacks.
 #[poise::command(prefix_command, slash_command)]
 async fn daily(ctx: Context<'_>) -> Result<(), Error> {
-    // We define the weights to be in decreasing order
-    let weights = [1000, 512, 256, 128, 64, 32, 16, 8, 4, 1];
-
-    let dist = WeightedIndex::new(&weights).unwrap();
-
-    let mut rng = StdRng::from_entropy();
-    let rand_index = dist.sample(&mut rng);
-
-    // Adding 1 because we want numbers from 1 to 10.
-    let clacks = (rand_index + 1) as i32;
-
-    match ctx
-        .data()
-        .add_clacks(ctx.author(), "Daily clacks", clacks)
-        .await
-    {
-        Ok(new_clacks) => {
+    match ctx.data().run_daily(ctx.author()).await {
+        Ok(DailyResult::Success(amount)) => {
+            ctx.reply(format!("You have received {} clacks!", amount))
+                .await?;
+        }
+        Ok(DailyResult::AlreadyClaimed(hours)) => {
             ctx.reply(format!(
-                "You received {} clacks. You now have {} clacks.",
-                clacks, new_clacks
+                "You have already claimed your daily clacks. Try again in {} hours.",
+                hours
             ))
             .await?;
         }
         Err(e) => {
-            log::error!("Error adding clacks: {:?}", e);
-            ctx.reply(format!("An error occurred trying to add clacks: {}", e))
+            log::error!("Error running daily: {:?}", e);
+            ctx.reply(format!("Error claiming your daily clacks: {}", e))
                 .await?;
         }
     }

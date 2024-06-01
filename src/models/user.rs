@@ -1,6 +1,10 @@
 use chrono::naive::NaiveDateTime;
+use chrono::{DateTime, Utc};
 use diesel::prelude::*;
 use diesel_async::{AsyncPgConnection, RunQueryDsl};
+use rand::distributions::{Distribution, WeightedIndex};
+use rand::rngs::StdRng;
+use rand::SeedableRng;
 use regex::Regex;
 
 use crate::schema::users::dsl::*;
@@ -8,6 +12,11 @@ use crate::schema::{transactions, users};
 use crate::twitch::{Client, Redemption, TWITCH};
 
 use super::NewTransaction;
+
+pub enum DailyResult {
+    Success(i32),
+    AlreadyClaimed(i64),
+}
 
 #[derive(Queryable, Selectable, Debug, Clone)]
 #[diesel(table_name = users)]
@@ -22,6 +31,7 @@ pub struct User {
     pub clacks: i32,
     pub modified_at: Option<NaiveDateTime>,
     pub created_at: Option<NaiveDateTime>,
+    pub last_daily_at: Option<NaiveDateTime>,
 }
 
 impl User {
@@ -135,6 +145,51 @@ impl User {
                 ),
             )
             .await;
+
+        Ok(())
+    }
+
+    pub async fn claim_daily(&self, conn: &mut AsyncPgConnection) -> anyhow::Result<DailyResult> {
+        // Checks if last_daily_at was more than 24 hours ago
+        let now = chrono::Utc::now();
+        println!("Self: {:?}", self);
+        if let Some(last_daily_at_naive) = self.last_daily_at {
+            let last_daily_at_utc =
+                DateTime::<Utc>::from_naive_utc_and_offset(last_daily_at_naive, Utc);
+            let duration = now - last_daily_at_utc;
+            println!("Duration: {:?}", duration.num_hours());
+            if duration.num_hours() < 24 {
+                let remaining = 24 - duration.num_hours();
+                return Ok(DailyResult::AlreadyClaimed(remaining));
+            }
+        }
+
+        // We define the weights to be in decreasing order
+        let weights = [1000, 512, 256, 128, 64, 32, 16, 8, 4, 1];
+
+        let dist = WeightedIndex::new(&weights).unwrap();
+
+        let mut rng = StdRng::from_entropy();
+        let rand_index = dist.sample(&mut rng);
+
+        // Adding 1 because we want numbers from 1 to 10.
+        let amount = (rand_index + 1) as i32;
+        self.add_clacks(conn, "Daily clacks", amount).await?;
+        self.update_last_daily_at(conn, now).await?;
+
+        Ok(DailyResult::Success(amount))
+    }
+
+    pub async fn update_last_daily_at(
+        &self,
+        conn: &mut AsyncPgConnection,
+        now: DateTime<Utc>,
+    ) -> anyhow::Result<()> {
+        diesel::update(users)
+            .filter(users::id.eq(&self.id))
+            .set(users::last_daily_at.eq(now.naive_utc()))
+            .execute(conn)
+            .await?;
 
         Ok(())
     }

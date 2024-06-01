@@ -27,6 +27,7 @@ diesel::table! {
         clacks -> Int4,
         modified_at -> Nullable<Timestamp>,
         created_at -> Nullable<Timestamp>,
+        last_daily_at -> Nullable<Timestamp>,
     }
 }
 

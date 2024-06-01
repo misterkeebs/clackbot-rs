@@ -1,0 +1,3 @@
+ALTER TABLE users
+ADD COLUMN last_daily_at TIMESTAMP;
+
